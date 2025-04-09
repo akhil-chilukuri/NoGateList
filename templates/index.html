@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NoGateList - Collaborative Lists Without Login</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/styles.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container">
+        <div class="app-container">
+            <div class="app-header">
+                <h1 class="text-2xl font-bold">NoGateList</h1>
+                <p class="text-sm opacity-80">Collaborative Lists Without Login</p>
+            </div>
+            
+            <div class="app-content">
+                <div class="search-container">
+                    <input type="text" class="search-input" placeholder="Search lists...">
+                </div>
+                
+                <button onclick="location.href='/lists/create'" class="create-list-button">
+                    + Create New List
+                </button>
+                
+                <form action="/lists/join" method="post">
+                    <div class="flex gap-2 mb-6">
+                        <input type="text" name="code" placeholder="Enter list code" 
+                               class="flex-1 border rounded py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <button type="submit" class="py-2 px-4 rounded text-white" style="background-color: var(--primary-color);">
+                            Join
+                        </button>
+                    </div>
+                </form>
+                
+                <div id="recent-lists" class="mb-6">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-2">Recent Lists</h3>
+                    <div id="recent-lists-items"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <a href="/lists/create" class="action-button">
+        <i class="fas fa-plus"></i>
+    </a>
+
+    <script>
+        // Store recent lists in localStorage
+        const RECENT_LISTS_KEY = 'nogatelistRecent';
+        
+        // Format today's date as ISO string
+        const todayStr = new Date().toISOString().split('T')[0];
+        
+        // Load recent lists from localStorage
+        function loadRecentLists() {
+            const recentLists = JSON.parse(localStorage.getItem(RECENT_LISTS_KEY) || '[]');
+            const listContainer = document.getElementById('recent-lists-items');
+            listContainer.innerHTML = '';
+            
+            if (recentLists.length === 0) {
+                listContainer.innerHTML = '<p class="text-gray-500 text-sm">No recent lists</p>';
+                return;
+            }
+            
+            // Limit to 5 most recent lists
+            const limitedLists = recentLists.slice(0, 5);
+            
+            limitedLists.forEach(listInfo => {
+                // Support both old format (just code string) and new format (object with code and name)
+                const code = typeof listInfo === 'string' ? listInfo : listInfo.code;
+                const name = typeof listInfo === 'string' ? `List: ${code}` : listInfo.name || `List: ${code}`;
+                
+                const div = document.createElement('div');
+                div.className = 'list-item recent-list-item';
+                div.setAttribute('href', `/lists/${code}`);
+                
+                const title = document.createElement('div');
+                title.className = 'list-title';
+                title.textContent = name;
+                
+                const meta = document.createElement('div');
+                meta.className = 'list-meta';
+                meta.textContent = `Code: ${code}`;
+                
+                div.appendChild(title);
+                div.appendChild(meta);
+                
+                // Add expiry info if available
+                if (typeof listInfo === 'object' && listInfo.expiryDate) {
+                    const expiryDiv = document.createElement('div');
+                    expiryDiv.className = 'text-xs text-gray-500 mt-1';
+                    
+                    const daysLeft = Math.max(0, Math.floor((new Date(listInfo.expiryDate) - new Date()) / (1000 * 60 * 60 * 24)));
+                    
+                    if (daysLeft <= 1) {
+                        expiryDiv.innerHTML = '<i class="fas fa-clock text-red-500 mr-1"></i> Expires today';
+                    } else if (daysLeft <= 3) {
+                        expiryDiv.innerHTML = `<i class="fas fa-clock text-yellow-500 mr-1"></i> Expires in ${daysLeft} days`;
+                    } else {
+                        expiryDiv.innerHTML = `<i class="fas fa-clock text-green-500 mr-1"></i> Expires in ${daysLeft} days`;
+                    }
+                    
+                    div.appendChild(expiryDiv);
+                }
+                
+                listContainer.appendChild(div);
+            });
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', loadRecentLists);
+    </script>
+    <script src="{{ url_for('static', path='/js/main.js') }}"></script>
+</body>
+</html> 
