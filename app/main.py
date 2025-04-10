@@ -20,13 +20,16 @@ supabase_url = os.environ.get("SUPABASE_URL")
 supabase_key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(supabase_url, supabase_key)
 
-app = FastAPI(title="NoGateList")
+# Get the absolute path to the project root directory
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+app = FastAPI(title="NoGateList", root_path=os.environ.get("ROOT_PATH", ""))
 
 # Mount static files
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
+app.mount("/static", StaticFiles(directory=os.path.join(ROOT_DIR, "app/static")), name="static")
 
 # Templates
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory=os.path.join(ROOT_DIR, "templates"))
 
 # Models for Supabase (for reference)
 # Lists table: id (uuid), code (text), created_at (timestamp), name (text), expiry_date (timestamp)

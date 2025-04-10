@@ -1,0 +1,12 @@
+#!/bin/bash
+
+# Install Python dependencies
+pip install -r requirements.txt
+
+# Create necessary directories if they don't exist
+mkdir -p .vercel/output/static
+mkdir -p .vercel/output/templates
+
+# Copy static files and templates
+cp -r app/static/* .vercel/output/static/
+cp -r templates/* .vercel/output/templates/ 
