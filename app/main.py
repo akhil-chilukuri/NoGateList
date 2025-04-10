@@ -101,17 +101,18 @@ async def create_list_get():
     return await create_list()
 
 @app.post("/lists/join")
-async def join_list(code: str = Form(...)):
+async def join_list(request: Request, code: str = Form(...)):
     # Check if the list exists
     result = supabase.table('lists').select("*").eq('code', code).execute()
     if not result.data:
-        # Create the list if it doesn't exist
-        expiry_date = (datetime.now(pytz.utc) + timedelta(days=7)).isoformat()
-        supabase.table('lists').insert({
-            "code": code,
-            "name": "Untitled List",
-            "expiry_date": expiry_date
-        }).execute()
+        # Redirect back with an error message
+        return templates.TemplateResponse(
+            "index.html",
+            {
+                "request": request,
+                "error_message": "The list with the provided code does not exist. Please try again."
+            }
+        )
     
     return RedirectResponse(f"/lists/{code}", status_code=303)
 
@@ -140,6 +141,9 @@ async def get_list(request: Request, code: str):
     
     items_result = supabase.table('items').select("*").eq('list_id', list_id).execute()
     
+    # Get error message from query params if any
+    error_message = request.query_params.get("error", "")
+    
     return templates.TemplateResponse(
         "list.html", 
         {
@@ -148,7 +152,8 @@ async def get_list(request: Request, code: str):
             "name": list_name,
             "items": items_result.data,
             "expiry_date": formatted_expiry_date,
-            "days_remaining": days_remaining
+            "days_remaining": days_remaining,
+            "error_message": error_message
         }
     )
 
@@ -184,24 +189,32 @@ async def update_list(request: Request, code: str, name: str = Form(...)):
 
 @app.post("/lists/{code}/items")
 async def add_item(code: str, content: str = Form(...)):
-    if not content:
-        raise HTTPException(status_code=400, detail="Content is required")
-    
-    # Get list id
-    result = supabase.table('lists').select("*").eq('code', code).execute()
-    if not result.data:
-        raise HTTPException(status_code=404, detail="List not found")
-    
-    list_id = result.data[0]['id']
-    
-    # Insert item
-    supabase.table('items').insert({
-        "list_id": list_id,
-        "content": content,
-        "completed": False
-    }).execute()
-    
-    return RedirectResponse(f"/lists/{code}", status_code=303)
+    try:
+        if not content or content.strip() == "":
+            # Redirect back with error
+            return RedirectResponse(f"/lists/{code}?error=Content+is+required", status_code=303)
+        
+        # Get list id
+        result = supabase.table('lists').select("*").eq('code', code).execute()
+        if not result.data:
+            return RedirectResponse(f"/lists/{code}?error=List+not+found", status_code=303)
+        
+        list_id = result.data[0]['id']
+        
+        # Insert item
+        insert_result = supabase.table('items').insert({
+            "list_id": list_id,
+            "content": content.strip(),
+            "completed": False
+        }).execute()
+        
+        if not insert_result.data:
+            return RedirectResponse(f"/lists/{code}?error=Failed+to+add+item", status_code=303)
+        
+        return RedirectResponse(f"/lists/{code}", status_code=303)
+    except Exception as e:
+        print(f"Error adding item: {str(e)}")
+        return RedirectResponse(f"/lists/{code}?error=An+error+occurred", status_code=303)
 
 @app.post("/lists/{code}/items/{item_id}/toggle")
 async def toggle_item(code: str, item_id: str):
@@ -238,4 +251,4 @@ async def delete_list(code: str):
     return RedirectResponse("/", status_code=303)
 
 if __name__ == "__main__":
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True) 
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)

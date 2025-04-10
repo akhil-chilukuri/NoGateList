@@ -59,11 +59,50 @@
                     <div class="flex gap-2 mb-4">
                         <input type="text" name="content" placeholder="Add new item" 
                                class="flex-1 border rounded py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <button type="submit" class="py-2 px-4 rounded text-white" style="background-color: var(--primary-color);">
-                            Add
-                        </button>
+                        <!-- Removed the Add button -->
+                    </div>
+                    <div id="error-message" class="text-red-500 text-sm mt-2 {{ 'hidden' if not error_message else '' }}">
+                        {{ error_message }}
                     </div>
                 </form>
+
+                <script>
+                    // Form submission handling
+                    const addItemForm = document.getElementById('add-item-form');
+                    const addButton = document.getElementById('add-button');
+                    let isSubmitting = false;
+
+                    addItemForm.addEventListener('submit', function(e) {
+                        const contentInput = this.querySelector('input[name="content"]');
+                        const errorDiv = document.getElementById('error-message');
+                        const content = contentInput.value.trim();
+
+                        // Client-side validation for empty content
+                        if (!content) {
+                            e.preventDefault();
+                            errorDiv.textContent = 'Please enter an item';
+                            errorDiv.classList.remove('hidden');
+                            return;
+                        }
+
+                        // Validation passed, hide error message
+                        errorDiv.classList.add('hidden');
+
+                        // Show loading state
+                        isSubmitting = true;
+                        addButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
+                        addButton.disabled = true;
+                    });
+
+                    // Reset form state if user navigates back
+                    window.addEventListener('pageshow', function(event) {
+                        if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
+                            isSubmitting = false;
+                            addButton.innerHTML = 'Add';
+                            addButton.disabled = false;
+                        }
+                    });
+                </script>
 
                 <ul class="space-y-2 mt-4">
                     {% for item in items %}
@@ -185,4 +224,4 @@
     </script>
     <script src="{{ url_for('static', path='/js/main.js') }}"></script>
 </body>
-</html> 
+</html>
