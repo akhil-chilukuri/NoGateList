@@ -7,17 +7,22 @@ A collaborative list application that enables real-time list sharing without req
 - Create and share lists without user accounts
 - Real-time synchronization across devices
 - Access lists using unique codes
-- Automatic list persistence
+- Automatic list expiration after 7 days
 - Add, check off, and delete list items
 - Remember previously accessed lists
+- Edit list names
+- Copy list URLs and codes
+- Visual indicators for list expiration status
+- Mobile-responsive design
 
 ## Tech Stack
 
 - Backend: Python FastAPI
 - Database: Supabase (PostgreSQL)
 - Real-time: Supabase Realtime
-- Frontend: HTML, CSS, JavaScript
+- Frontend: HTML, TailwindCSS, JavaScript
 - Local Storage: Browser localStorage for remembering lists
+- Icons: Font Awesome
 
 ## Setup
 
@@ -47,8 +52,15 @@ NoGateList/
 │   ├── models.py         # Pydantic models
 │   └── static/           # Static files (CSS, JS)
 │       ├── css/
+│       │   └── styles.css
 │       └── js/
-└── templates/            # HTML templates
+│           └── main.js
+├── templates/            # HTML templates
+│   ├── index.html       # Home page
+│   └── list.html        # List view page
+├── requirements.txt      # Python dependencies
+├── .env.example         # Example environment variables
+└── README.md           # Project documentation
 ```
 
 ## Database Schema
@@ -57,7 +69,9 @@ NoGateList/
 create table lists (
     id uuid default gen_random_uuid() primary key,
     code text unique not null,
-    created_at timestamp with time zone default timezone('utc'::text, now()) not null
+    name text not null default 'Untitled List',
+    created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+    expires_at timestamp with time zone default (timezone('utc'::text, now()) + interval '7 days') not null
 );
 
 create table items (
